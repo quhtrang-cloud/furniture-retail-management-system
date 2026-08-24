@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Loyalty & Coupons - Pompey Furniture</title>
   <link rel="stylesheet" href="style.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- SEO Meta Tags -->
   <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
   <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
@@ -15,18 +14,14 @@
   <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
   <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://yourdomain.com/">
-  <meta property="og:image" content="https://yourdomain.com/images/og-image.jpg">
-  <!-- Twitter Card -->
+<!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Pompey Furniture | Elegant Living Starts Here">
   <meta name="twitter:description" content="Explore premium, locally crafted furniture for your home. Showroom pickup and 28-day returns.">
-  <meta name="twitter:image" content="https://yourdomain.com/images/twitter-card.jpg">
-  <!-- Favicon -->
+<!-- Favicon -->
   <link rel="icon" type="image/png" href="images/products/favicon.png">
   <!-- Canonical URL -->
-  <link rel="canonical" href="https://yourdomain.com/">
-  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -87,8 +82,14 @@
     nav.classList.toggle('active');
     }
     async function loadLoyalty() {
+      const customerId = localStorage.getItem('customer_id');
+      if (!customerId) {
+        window.location.href = 'login.html';
+        return;
+      }
+
       try {
-        const res = await fetch('/api/customer/loyalty');
+        const res = await fetch(`/api/customer/loyalty/${customerId}`);
         const data = await res.json();
 
         document.getElementById('points').textContent = data.points || 0;

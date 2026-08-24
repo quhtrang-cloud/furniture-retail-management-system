@@ -10,8 +10,7 @@
   <meta name="author" content="Pompey Furniture">
   <meta name="robots" content="index, follow">
   <link rel="icon" type="image/png" href="images/products/favicon.png">
-  <link rel="canonical" href="https://yourdomain.com/">
-  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -41,7 +40,8 @@
       <form id="register-form">
         <input type="text" id="name" placeholder="Full Name" required />
         <input type="email" id="email" placeholder="Email Address" required />
-        <input type="text" id="phone" placeholder="Phone Number" required />
+        <input type="tel" id="phone" placeholder="Phone Number" required />
+        <textarea id="address" rows="3" placeholder="Address" required></textarea>
         <input type="password" id="password" placeholder="Password" required />
         <input type="password" id="confirm" placeholder="Confirm Password" required />
         <button type="submit">Register</button>
@@ -78,6 +78,7 @@
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
       const phone = document.getElementById('phone').value.trim();
+      const address = document.getElementById('address').value.trim();
       const password = document.getElementById('password').value;
       const confirm = document.getElementById('confirm').value;
 
@@ -90,7 +91,7 @@
         const response = await fetch('/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, phone_number: phone, password })
+          body: JSON.stringify({ name, email, phone_number: phone, address, password })
         });
 
         const data = await response.json();

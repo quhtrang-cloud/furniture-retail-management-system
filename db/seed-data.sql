@@ -67,9 +67,9 @@ INSERT INTO order_item (order_id, product_id, quantity, unit_price) VALUES
 -- ===============================
 -- DELIVERY INFO
 -- ===============================
-INSERT INTO delivery_info (order_id, delivery_type, delivery_address) VALUES
-(1, 'home', '12 Queen St, Portsmouth'),
-(2, 'pickup', NULL);
+INSERT INTO delivery_info (order_id, delivery_type, delivery_address, showroom_id) VALUES
+(1, 'home', '12 Queen St, Portsmouth', NULL),
+(2, 'pickup', NULL, 1);
 
 -- ===============================
 -- RETURN RECORD

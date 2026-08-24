@@ -42,7 +42,7 @@ CREATE TABLE customer (
   email VARCHAR(100) UNIQUE NOT NULL,
   phone_number VARCHAR(20) NOT NULL,
   address TEXT NOT NULL,
-  password VARCHAR(100) DEFAULT '1234'
+  password VARCHAR(100) NOT NULL
 );
 
 CREATE TABLE loyalty_account (
@@ -107,7 +107,7 @@ CREATE TABLE employee (
   employee_id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(100) DEFAULT 'admin',
+  password VARCHAR(100) NOT NULL,
   role VARCHAR(50),
   showroom_id INT REFERENCES showroom(showroom_id),
   manager_id INT REFERENCES manager(manager_id)

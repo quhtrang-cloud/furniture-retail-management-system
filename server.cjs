@@ -38,25 +38,6 @@ app.get('/init-db', async (req, res) => {
 });
 
 
-app.get('/api/customer/:id/orders', async (req, res) => {
-  const id = req.params.id;
-  try {
-    const orders = await pool.query(`
-      SELECT o.order_id, o.order_date, SUM(oi.quantity * oi.unit_price) AS total_amount
-      FROM "order" o
-      JOIN order_item oi ON o.order_id = oi.order_id
-      WHERE o.customer_id = $1
-      GROUP BY o.order_id
-    `, [id]);
-
-    res.json(orders.rows);
-  } catch (err) {
-    console.error('Error fetching orders:', err);
-    res.status(500).json({ error: 'Failed to fetch orders' });
-  }
-});
-
-
 // ------------------
 // LOGIN
 // ------------------
@@ -155,16 +136,27 @@ app.get('/api/customers', async (req, res) => {
 });
 
 app.post('/api/customers', async (req, res) => {
-  const { name, email, phone_number, password } = req.body;
+  const { name, email, phone_number, address, password } = req.body;
+
+  if (!name || !email || !phone_number || !address || !password) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Name, email, phone number, address and password are required'
+    });
+  }
+
   try {
     await pool.query(
-      `INSERT INTO customer (name, email, phone_number, password)
-       VALUES ($1, $2, $3, $4)`,
-      [name, email, phone_number, password]
+      `INSERT INTO customer (name, email, phone_number, address, password)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [name.trim(), email.trim().toLowerCase(), phone_number.trim(), address.trim(), password]
     );
-    res.json({ status: 'success' });
+    res.status(201).json({ status: 'success' });
   } catch (err) {
-    console.error(err);
+    console.error('CREATE CUSTOMER ERROR:', err);
+    if (err.code === '23505') {
+      return res.status(409).json({ status: 'fail', message: 'Email is already registered' });
+    }
     res.status(500).json({ status: 'fail', message: 'Registration failed' });
   }
 });
@@ -416,85 +408,43 @@ app.put('/api/stocks/:id', async (req, res) => {
   }
 });
 
-// CUSTOMER ORDER HISTORY
-app.get('/api/customer/:id/orders', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const orders = await pool.query(`
-      SELECT o.order_id, o.order_date, SUM(oi.quantity * oi.unit_price) AS total_amount
-      FROM "order" o
-      JOIN order_item oi ON o.order_id = oi.order_id
-      WHERE o.customer_id = $1
-      GROUP BY o.order_id
-      ORDER BY o.order_date DESC
-    `, [id]);
-
-    res.json(orders.rows);
-  } catch (err) {
-    console.error('Error fetching customer orders:', err);
-    res.status(500).send('Server error');
-  }
-});
-
-// CUSTOMER RETURNS
-app.get('/api/customer/:id/returns', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const returns = await pool.query(`
-      SELECT r.order_id, r.reason, r.return_date
-      FROM return_record r
-      JOIN "order" o ON r.order_id = o.order_id
-      WHERE o.customer_id = $1
-      ORDER BY r.return_date DESC
-    `, [id]);
-
-    res.json(returns.rows);
-  } catch (err) {
-    console.error('Error fetching return data:', err);
-    res.status(500).send('Server error');
-  }
-});
-
-// CUSTOMER LOYALTY AND COUPONS
-app.get('/api/customer/:id/loyalty', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const loyalty = await pool.query(`
-      SELECT points FROM loyalty_account WHERE customer_id = $1
-    `, [id]);
-
-    const coupons = await pool.query(`
-      SELECT * FROM coupon WHERE customer_id = $1 AND expiry_date >= CURRENT_DATE
-    `, [id]);
-
-    res.json({ points: loyalty.rows[0]?.points || 0, coupons: coupons.rows });
-  } catch (err) {
-    console.error('Error fetching loyalty:', err);
-    res.status(500).send('Server error');
-  }
-});
-
-
-
 // GET customer orders
 app.get('/api/customer/orders/:id', async (req, res) => {
   const customerId = req.params.id;
 
   try {
     const orders = await pool.query(`
-      SELECT o.order_id, o.order_date,
-        COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total
+      SELECT
+        o.order_id,
+        o.order_date,
+        d.delivery_type,
+        d.delivery_address,
+        s.name AS showroom_name,
+        COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'product_name', p.name,
+              'quantity', oi.quantity,
+              'unit_price', oi.unit_price
+            ) ORDER BY oi.order_item_id
+          ) FILTER (WHERE oi.order_item_id IS NOT NULL),
+          '[]'::json
+        ) AS items
       FROM "order" o
       LEFT JOIN order_item oi ON o.order_id = oi.order_id
+      LEFT JOIN product p ON oi.product_id = p.product_id
+      LEFT JOIN delivery_info d ON o.order_id = d.order_id
+      LEFT JOIN showroom s ON d.showroom_id = s.showroom_id
       WHERE o.customer_id = $1
-      GROUP BY o.order_id, o.order_date
+      GROUP BY o.order_id, o.order_date, d.delivery_type, d.delivery_address, s.name
       ORDER BY o.order_date DESC
     `, [customerId]);
 
     res.json(orders.rows);
   } catch (err) {
-    console.error("Error fetching orders:", err);
-    res.status(500).json({ error: "Failed to fetch orders" });
+    console.error('Error fetching customer orders:', err);
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
 
@@ -515,8 +465,8 @@ app.get('/api/customer/returns/:id', async (req, res) => {
 
     res.json(returns.rows);
   } catch (err) {
-    console.error("Error fetching returns:", err);
-    res.status(500).json({ error: "Failed to fetch returns" });
+    console.error('Error fetching returns:', err);
+    res.status(500).json({ error: 'Failed to fetch returns' });
   }
 });
 
@@ -525,14 +475,25 @@ app.get('/api/customer/loyalty/:id', async (req, res) => {
   const customerId = req.params.id;
 
   try {
-    const result = await pool.query(`
-      SELECT points FROM loyalty_account WHERE customer_id = $1
+    const loyalty = await pool.query(
+      'SELECT points FROM loyalty_account WHERE customer_id = $1',
+      [customerId]
+    );
+
+    const coupons = await pool.query(`
+      SELECT coupon_id, description, discount_amount, expiry_date
+      FROM coupon
+      WHERE customer_id = $1 AND expiry_date >= CURRENT_DATE
+      ORDER BY expiry_date
     `, [customerId]);
 
-    res.json(result.rows[0] || { points: 0 });
+    res.json({
+      points: loyalty.rows[0]?.points || 0,
+      coupons: coupons.rows
+    });
   } catch (err) {
-    console.error("Error fetching loyalty:", err);
-    res.status(500).json({ error: "Failed to fetch loyalty points" });
+    console.error('Error fetching loyalty:', err);
+    res.status(500).json({ error: 'Failed to fetch loyalty data' });
   }
 });
 
@@ -682,30 +643,67 @@ app.delete('/api/stocks/:id', async (req, res) => {
 // RETURNS (simplified)
 // ------------------
 app.post('/api/customer/return-request', async (req, res) => {
-  const { order_id, reason } = req.body;
+  const { customer_id, order_id, reason } = req.body;
+
+  if (!customer_id || !order_id || !reason?.trim()) {
+    return res.status(400).json({ status: 'fail', message: 'Order and return reason are required' });
+  }
+
   try {
+    const eligible = await pool.query(`
+      SELECT o.order_id
+      FROM "order" o
+      WHERE o.order_id = $1
+        AND o.customer_id = $2
+        AND CURRENT_DATE - o.order_date <= 28
+        AND NOT EXISTS (
+          SELECT 1 FROM return_record r WHERE r.order_id = o.order_id
+        )
+    `, [order_id, customer_id]);
+
+    if (eligible.rows.length === 0) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'This order is not eligible for return'
+      });
+    }
+
     await pool.query(
       `INSERT INTO return_record (order_id, return_date, reason)
        VALUES ($1, CURRENT_DATE, $2)`,
-      [order_id, reason]
+      [order_id, reason.trim()]
     );
-    res.json({ status: 'success' });
+
+    res.status(201).json({ status: 'success' });
   } catch (err) {
-    res.status(500).send('Error submitting return request');
+    console.error('RETURN REQUEST ERROR:', err);
+    res.status(500).json({ status: 'fail', message: 'Error submitting return request' });
   }
 });
 
 
-app.get('/api/customer/return-eligible', async (req, res) => {
+app.get('/api/customer/return-eligible/:id', async (req, res) => {
+  const customerId = req.params.id;
+
   try {
     const result = await pool.query(`
-      SELECT o.order_id, o.order_date, d.delivery_type, d.delivery_address, s.name AS showroom_name
+      SELECT
+        o.order_id,
+        o.order_date,
+        d.delivery_type,
+        d.delivery_address,
+        s.name AS showroom_name
       FROM "order" o
       JOIN delivery_info d ON o.order_id = d.order_id
       LEFT JOIN showroom s ON d.showroom_id = s.showroom_id
-      WHERE CURRENT_DATE - o.order_date <= 28
-        AND o.order_id NOT IN (SELECT order_id FROM return_record)
-    `);
+      WHERE o.customer_id = $1
+        AND CURRENT_DATE - o.order_date <= 28
+        AND NOT EXISTS (
+          SELECT 1 FROM return_record r WHERE r.order_id = o.order_id
+        )
+      ORDER BY o.order_date DESC
+    `, [customerId]);
+
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching eligible returns:', err);
@@ -716,17 +714,25 @@ app.get('/api/customer/return-eligible', async (req, res) => {
 app.get('/api/orders', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT o.order_id, c.name AS customer_name, s.name AS showroom_name,
-             o.order_date, o.total_amount
+      SELECT
+        o.order_id,
+        c.name AS customer_name,
+        s.name AS showroom_name,
+        o.order_date,
+        COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_amount
       FROM "order" o
       JOIN customer c ON o.customer_id = c.customer_id
-      JOIN showroom s ON o.showroom_id = s.showroom_id
+      LEFT JOIN order_item oi ON o.order_id = oi.order_id
+      LEFT JOIN delivery_info d ON o.order_id = d.order_id
+      LEFT JOIN showroom s ON d.showroom_id = s.showroom_id
+      GROUP BY o.order_id, c.name, s.name, o.order_date
       ORDER BY o.order_id DESC
     `);
+
     res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching orders:", err);
-    res.status(500).json({ error: "Failed to fetch orders" });
+    console.error('Error fetching orders:', err);
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
 

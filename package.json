@@ -1,5 +1,5 @@
 {
-  "name": "test",
+  "name": "furniture-retail-management-system",
   "version": "1.0.0",
   "main": "server.cjs",
   "scripts": {
@@ -7,9 +7,9 @@
     "setup": "node do-not-edit/setup-db.js",
     "cleanup": "node do-not-edit/cleanup-db.js"
   },
-  "author": "",
+  "author": "Quynh Trang Nguyen and project team",
   "license": "ISC",
-  "description": "",
+  "description": "Academic full-stack furniture retail management system built with Node.js, Express and PostgreSQL.",
   "dependencies": {
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
