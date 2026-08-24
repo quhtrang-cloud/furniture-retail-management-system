@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add Product - Pompey Furniture</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
+  <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
+  <meta name="author" content="Pompey Furniture">
+  <meta name="robots" content="index, follow">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yourdomain.com/">
+  <meta property="og:image" content="https://yourdomain.com/images/og-image.jpg">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta name="twitter:description" content="Explore premium, locally crafted furniture for your home. Showroom pickup and 28-day returns.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/twitter-card.jpg">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/products/favicon.png">
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://yourdomain.com/">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <div class="logo">Pompey Admin</div>
+      <div class="hamburger" onclick="toggleMenu()">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <ul class="nav-links" id="nav-links">
+        <li><a id="dashboard-link" href="#">Dashboard</a></li>
+        <li class="dropdown only-admin">
+          <a href="#">Manage</a>
+          <ul class="dropdown-menu">
+
+            <li><a href="add-product.html" class="active">Add Product</a></li>
+            <li><a href="customers.html">Customers</a></li>
+            <li><a href="employees.html">Employees</a></li>
+            <li><a href="stocks.html">Stocks</a></li>
+            <li><a href="showrooms.html">Showrooms</a></li>
+
+            <li><a href="payroll.html">Payroll</a></li>
+          </ul>
+        </li>
+        <li><a href="login.html">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+<main>
+    <!-- Add Product Form -->
+<section class="add-product-section">
+  <h2>Add New Product</h2>
+  <form class="add-product-form" id="addProductForm">
+    <input type="text" name="name" placeholder="Product Name" required />
+    <input type="text" name="category_id" placeholder="Category ID" required />
+    
+    <textarea name="description" placeholder="Description" class="full-width" required></textarea>
+    
+    <input type="number" name="price" placeholder="Price (£)" required />
+    <input type="text" name="image1" placeholder="Image 1 Filename (e.g. sofa1a.jpg)" required />
+    <input type="text" name="image2" placeholder="Image 2 Filename (e.g. sofa1b.jpg)" required />
+    
+    <button type="submit">Add Product</button>
+  </form>
+</section>
+
+</main>
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="about.html">About</a> |
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 Pompey Furniture Company</p>
+    <div class="social-icons">
+      <a href="#"><img src="images/facebook.png" alt="Facebook" /></a>
+      <a href="#"><img src="images/instagram.png" alt="Instagram" /></a>
+      <a href="#"><img src="images/twitter.png" alt="Twitter" /></a>
+    </div>
+  </footer>
+
+
+  <script>
+  const role = localStorage.getItem("role");
+  const dashboardLink = document.getElementById("dashboard-link");
+
+    if (role !== 'admin') {
+    document.querySelectorAll('.only-admin').forEach(el => el.style.display = 'none');
+  }
+
+
+  if (role === "staff") {
+    dashboardLink.href = "staff.html";
+  } else if (role === "admin") {
+    dashboardLink.href = "admin.html";
+  } else {
+    dashboardLink.href = "login.html"; // fallback if not logged in
+  }
+</script>
+
+
+  <!-- Script to Load Categories and Handle Submission -->
+  <script>
+    function toggleMenu() {
+    const nav = document.getElementById('nav-links');
+    nav.classList.toggle('active');
+    }
+    async function loadCategories() {
+      const res = await fetch('/api/product-categories');
+      const categories = await res.json();
+      const select = document.getElementById('category');
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.category_id;
+        opt.textContent = cat.name;
+        select.appendChild(opt);
+      });
+    }
+
+    document.getElementById('add-product-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const data = {
+        name: document.getElementById('name').value.trim(),
+        description: document.getElementById('description').value.trim(),
+        price: parseFloat(document.getElementById('price').value),
+        category_id: parseInt(document.getElementById('category').value),
+        image1: document.getElementById('image1').value.trim(),
+        image2: document.getElementById('image2').value.trim()
+      };
+
+      try {
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        if (result.status === 'success') {
+          alert("Product added successfully.");
+          this.reset();
+        } else {
+          alert("Failed to add product.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Server error while adding product.");
+      }
+    });
+
+    window.onload = loadCategories;
+  </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Orders - Pompey Furniture</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
+  <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
+  <meta name="author" content="Pompey Furniture">
+  <meta name="robots" content="index, follow">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yourdomain.com/">
+  <meta property="og:image" content="https://yourdomain.com/images/og-image.jpg">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta name="twitter:description" content="Explore premium, locally crafted furniture for your home. Showroom pickup and 28-day returns.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/twitter-card.jpg">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/products/favicon.png">
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://yourdomain.com/">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <div class="logo">Pompey Customer</div>
+            <div class="hamburger" onclick="toggleMenu()">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="products.html">Shop</a></li>
+        <li><a href="orders.html" class="active">My Orders</a></li>
+        <li><a href="loyalty.html">Loyalty</a></li>
+        <li><a href="returns.html">Returns</a></li>
+        <li><a href="login.html">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+<main>
+    <!-- Orders Section -->
+    <section class="orders-section">
+      <h1>My Orders</h1>
+      <div id="orders-container">
+        <p>Loading your orders...</p>
+      </div>
+    </section>
+</main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="about.html">About</a> |
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 Pompey Furniture Company</p>
+    <div class="social-icons">
+      <a href="#"><img src="images/facebook.png" alt="Facebook" /></a>
+      <a href="#"><img src="images/instagram.png" alt="Instagram" /></a>
+      <a href="#"><img src="images/twitter.png" alt="Twitter" /></a>
+    </div>
+  </footer>
+
+  <!-- Fetch and Display Orders Script -->
+  <script>
+        function toggleMenu() {
+    const nav = document.getElementById('nav-links');
+    nav.classList.toggle('active');
+    }
+    async function loadOrders() {
+      try {
+        const res = await fetch('/api/customer/orders');
+        const orders = await res.json();
+        const container = document.getElementById('orders-container');
+        container.innerHTML = '';
+
+        if (orders.length === 0) {
+          container.innerHTML = '<p>You have no orders yet.</p>';
+          return;
+        }
+
+        orders.forEach(order => {
+          const orderDiv = document.createElement('div');
+          orderDiv.className = 'order-box';
+          orderDiv.innerHTML = `
+            <h3>Order #${order.order_id} — ${new Date(order.order_date).toLocaleDateString()}</h3>
+            <p><strong>Delivery:</strong> ${order.delivery_type === 'home' ? 'Home - ' + order.delivery_address : 'Pickup - ' + order.showroom_name}</p>
+            <table class="order-table">
+              <thead>
+                <tr><th>Product</th><th>Quantity</th><th>Unit Price</th></tr>
+              </thead>
+              <tbody>
+                ${order.items.map(item => `
+                  <tr>
+                    <td>${item.product_name}</td>
+                    <td>${item.quantity}</td>
+                    <td>£${item.unit_price}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          container.appendChild(orderDiv);
+        });
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('orders-container').innerHTML = '<p>Failed to load orders.</p>';
+      }
+    }
+
+    window.onload = loadOrders;
+  </script>
+</body>
+</html>

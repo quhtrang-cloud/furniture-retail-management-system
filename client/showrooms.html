@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Showrooms - Pompey Furniture</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
+  <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
+  <meta name="author" content="Pompey Furniture">
+  <meta name="robots" content="index, follow">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yourdomain.com/">
+  <meta property="og:image" content="https://yourdomain.com/images/og-image.jpg">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta name="twitter:description" content="Explore premium, locally crafted furniture for your home. Showroom pickup and 28-day returns.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/twitter-card.jpg">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/products/favicon.png">
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://yourdomain.com/">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <div class="logo" id="role-logo">Pompey</div>
+            <div class="hamburger" onclick="toggleMenu()">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <ul class="nav-links" id="nav-links">
+        <li><a id="dashboard-link" href="#">Dashboard</a></li>
+        <li class="dropdown only-admin">
+          <a href="#">Manage</a>
+          <ul class="dropdown-menu">
+            <!-- <li><a href="products.html">Products</a></li> -->
+            <li><a href="customers.html">Customers</a></li>
+            <li><a href="employees.html">Employees</a></li>
+            <li><a href="stocks.html">Stocks</a></li>
+            <li><a href="showrooms.html" class="active">Showrooms</a></li>
+            <li><a href="payroll.html">Payroll</a></li>
+          </ul>
+        </li>
+        <li><a href="login.html">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+<main>
+<!-- Showroom Table -->
+<section class="data-section">
+  <h1>Showroom Locations</h1>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Address</th>
+          <th>Contact</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="showroom-body">
+        <!-- Dynamic rows go here -->
+      </tbody>
+    </table>
+  </div>
+</section>
+
+  </main>
+
+
+<!-- Footer -->
+<footer>
+  <div class="footer-links">
+    <a href="about.html">About</a> |
+    <a href="contact.html">Contact</a>
+  </div>
+  <p>&copy; 2025 Pompey Furniture Company</p>
+  <div class="social-icons">
+    <a href="#"><img src="images/facebook.png" alt="Facebook" /></a>
+    <a href="#"><img src="images/instagram.png" alt="Instagram" /></a>
+    <a href="#"><img src="images/twitter.png" alt="Twitter" /></a>
+  </div>
+</footer>
+
+
+<!-- Script for role-based setup -->
+<script>
+  const role = localStorage.getItem("role");
+  const dashboardLink = document.getElementById("dashboard-link");
+  const logo = document.getElementById("role-logo");
+
+    if (role !== 'admin') {
+    document.querySelectorAll('.only-admin').forEach(el => el.style.display = 'none');
+  }
+
+
+  if (role === "staff") {
+    dashboardLink.href = "staff.html";
+    logo.textContent = "Pompey Staff";
+  } else if (role === "admin") {
+    dashboardLink.href = "admin.html";
+    logo.textContent = "Pompey Admin";
+  } else {
+    dashboardLink.href = "login.html";
+    logo.textContent = "Pompey";
+  }
+
+  const isAdmin = role === "admin";
+</script>
+
+<!-- Script: Load Showrooms -->
+<script>
+
+      function toggleMenu() {
+    const nav = document.getElementById('nav-links');
+    nav.classList.toggle('active');
+    }
+  async function loadShowrooms() {
+    try {
+      const res = await fetch('/api/showrooms');
+      const showrooms = await res.json();
+      const tbody = document.getElementById('showroom-body');
+      tbody.innerHTML = '';
+
+      showrooms.forEach(s => {
+        const row = document.createElement('tr');
+        row.setAttribute('data-id', s.showroom_id);
+
+let actions = '';
+if (isAdmin) {
+  actions = `
+    <button onclick="editShowroom(${s.showroom_id})">Edit</button>
+    <button onclick="deleteShowroom(${s.showroom_id})">Delete</button>
+  `;
+} else {
+  actions = `<span style="color: gray; font-size: 0.9em;">Admin only</span>`;
+}
+
+
+        row.innerHTML = `
+          <td>${s.showroom_id}</td>
+          <td>${s.name}</td>
+          <td>${s.address}</td>
+          <td>${s.contact_number}</td>
+          <td>${actions}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+    } catch (err) {
+      alert("Failed to load showrooms.");
+      console.error(err);
+    }
+  }
+
+  function editShowroom(id) {
+    if (!isAdmin) return;
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    const cells = row.children;
+    const name = cells[1].innerText;
+    const address = cells[2].innerText;
+    const contact = cells[3].innerText;
+
+    cells[1].innerHTML = `<input name="name" value="${name}" />`;
+    cells[2].innerHTML = `<input name="address" value="${address}" />`;
+    cells[3].innerHTML = `<input name="contact" value="${contact}" />`;
+
+    cells[4].innerHTML = `
+      <button onclick="saveShowroom(${id})">Save</button>
+      <button onclick="cancelEdit(${id})">Cancel</button>
+      
+    `;
+  }
+
+  function cancelEdit(id) {
+    loadShowrooms();
+  }
+
+  async function saveShowroom(id) {
+    if (!isAdmin) return;
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    const name = row.querySelector('input[name="name"]').value;
+    const address = row.querySelector('input[name="address"]').value;
+    const contact = row.querySelector('input[name="contact"]').value;
+
+    try {
+      const res = await fetch(`/api/showrooms/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, address, contact_number: contact })
+      });
+
+      const result = await res.json();
+      if (result.status === 'success') {
+        alert("Showroom updated successfully.");
+        loadShowrooms();
+      } else {
+        alert("Update failed.");
+      }
+
+    } catch (err) {
+      alert("Server error during update.");
+      console.error(err);
+    }
+  }
+
+  async function deleteShowroom(id) {
+    if (!isAdmin) return;
+    if (confirm("Are you sure you want to delete this showroom?")) {
+      try {
+        const res = await fetch(`/api/showrooms/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+          alert("Showroom deleted.");
+          loadShowrooms();
+        } else {
+          alert("Failed to delete showroom.");
+        }
+      } catch (err) {
+        alert("Server error during deletion.");
+      }
+    }
+  }
+
+  window.onload = loadShowrooms;
+</script>
+
+
+</body>
+</html>

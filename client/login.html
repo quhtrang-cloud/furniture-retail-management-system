@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Pompey Furniture</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
+  <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
+  <meta name="author" content="Pompey Furniture">
+  <meta name="robots" content="index, follow">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yourdomain.com/">
+  <meta property="og:image" content="https://yourdomain.com/images/og-image.jpg">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta name="twitter:description" content="Explore premium, locally crafted furniture for your home. Showroom pickup and 28-day returns.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/twitter-card.jpg">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/products/favicon.png">
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://yourdomain.com/">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <div class="logo">Pompey Furniture</div>
+      <div class="hamburger" onclick="toggleMenu()">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="products.html">Shop</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="login.html" class="active">Login</a></li>
+      </ul>
+    </nav>
+  </header>
+
+<main>
+    <!-- Login Form -->
+    <section class="auth-section">
+      <h2>Login to Your Account</h2>
+      <form id="login-form">
+        <input type="email" id="email" placeholder="daniel@pompey.com " required />
+        <input type="password" id="password" placeholder="admin" required />
+        <button type="submit">Login</button>
+      </form>
+      <p>Don't have an account? <a href="register.html">Register here</a></p>
+    </section>
+</main>
+  
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="about.html">About</a> |
+      <a href="contact.html">Contact</a> |
+      <a href="login.html">Login</a>
+    </div>
+    <p>&copy; 2025 Pompey Furniture Company</p>
+    <div class="social-icons">
+      <a href="#"><img src="images/facebook.png" alt="Facebook" /></a>
+      <a href="#"><img src="images/instagram.png" alt="Instagram" /></a>
+      <a href="#"><img src="images/twitter.png" alt="Twitter" /></a>
+    </div>
+  </footer>
+
+<script>
+document.getElementById('login-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+if (data.status === 'success') {
+  localStorage.setItem('role', data.role);
+
+  if (data.role === 'customer') {
+    localStorage.setItem('customer_id', data.customer_id);
+    window.location.href = 'customer.html';
+  } else if (data.role === 'admin') {
+    localStorage.setItem('employee_id', data.employee_id);  // ✅ Store for admin
+    window.location.href = 'admin.html';
+  } else if (data.role === 'staff') {
+    localStorage.setItem('employee_id', data.employee_id);  // ✅ Store for staff
+    window.location.href = 'staff.html';
+  }
+} else {
+      alert("Invalid credentials.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Server error.");
+  }
+});
+</script>
+<script>
+  function toggleMenu() {
+    const nav = document.getElementById('navLinks');
+    nav.classList.toggle('active');
+  }
+</script>
+
+
+  
+
+</body>
+</html>

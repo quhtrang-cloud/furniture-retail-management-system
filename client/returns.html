@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Returns - Pompey Furniture</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
+  <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
+  <meta name="author" content="Pompey Furniture">
+  <meta name="robots" content="index, follow">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yourdomain.com/">
+  <meta property="og:image" content="https://yourdomain.com/images/og-image.jpg">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta name="twitter:description" content="Explore premium, locally crafted furniture for your home. Showroom pickup and 28-day returns.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/twitter-card.jpg">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/products/favicon.png">
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://yourdomain.com/">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <div class="logo">Pompey Customer</div>
+            <div class="hamburger" onclick="toggleMenu()">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="products.html">Shop</a></li>
+        <li><a href="orders.html">My Orders</a></li>
+        <li><a href="loyalty.html">Loyalty</a></li>
+        <li><a href="returns.html" class="active">Returns</a></li>
+        <li><a href="login.html">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+<main>
+    <!-- Returns Section -->
+    <section class="returns-section">
+      <h1>Eligible Returns (within 28 Days)</h1>
+      <div id="eligible-orders">
+        <p>Loading eligible orders...</p>
+      </div>
+  
+      <h2>Submit a Return Request</h2>
+      <form id="return-form">
+        <label for="orderId">Order ID:</label>
+        <select id="orderId" required></select>
+  
+        <label for="reason">Return Reason:</label>
+        <textarea id="reason" rows="4" required></textarea>
+  
+        <button type="submit">Submit Return Request</button>
+      </form>
+    </section>
+</main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="about.html">About</a> |
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 Pompey Furniture Company</p>
+    <div class="social-icons">
+      <a href="#"><img src="images/facebook.png" alt="Facebook" /></a>
+      <a href="#"><img src="images/instagram.png" alt="Instagram" /></a>
+      <a href="#"><img src="images/twitter.png" alt="Twitter" /></a>
+    </div>
+  </footer>
+
+  <!-- Return Logic Script -->
+  <script>
+    function toggleMenu() {
+    const nav = document.getElementById('nav-links');
+    nav.classList.toggle('active');
+    }
+    async function loadEligibleOrders() {
+      try {
+        const res = await fetch('/api/customer/return-eligible');
+        const data = await res.json();
+        const container = document.getElementById('eligible-orders');
+        const orderSelect = document.getElementById('orderId');
+        container.innerHTML = '';
+        orderSelect.innerHTML = '';
+
+        if (!data || data.length === 0) {
+          container.innerHTML = '<p>No orders eligible for return.</p>';
+          return;
+        }
+
+        data.forEach(order => {
+          // Show in visual list
+          const div = document.createElement('div');
+          div.className = 'order-box';
+          div.innerHTML = `
+            <p><strong>Order #${order.order_id}</strong> - ${new Date(order.order_date).toLocaleDateString()}</p>
+            <p><strong>Delivered:</strong> ${order.delivery_type === 'home' ? order.delivery_address : 'Pickup - ' + order.showroom_name}</p>
+          `;
+          container.appendChild(div);
+
+          // Populate select
+          const option = document.createElement('option');
+          option.value = order.order_id;
+          option.textContent = `Order #${order.order_id}`;
+          orderSelect.appendChild(option);
+        });
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('eligible-orders').innerHTML = '<p>Error loading return data.</p>';
+      }
+    }
+
+    document.getElementById('return-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const order_id = document.getElementById('orderId').value;
+      const reason = document.getElementById('reason').value;
+
+      try {
+        const res = await fetch('/api/customer/return-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id, reason })
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
+          alert('Return request submitted successfully.');
+          this.reset();
+        } else {
+          alert('Return failed: ' + data.message);
+        }
+      } catch (err) {
+        alert('Server error while submitting return.');
+      }
+    });
+
+    window.onload = loadEligibleOrders;
+  </script>
+</body>
+</html>

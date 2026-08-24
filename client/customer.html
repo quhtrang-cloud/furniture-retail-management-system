@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pompey Customer Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
+  <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
+  <meta name="author" content="Pompey Furniture">
+  <meta name="robots" content="index, follow">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yourdomain.com/">
+  <meta property="og:image" content="https://yourdomain.com/images/og-image.jpg">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta name="twitter:description" content="Explore premium, locally crafted furniture for your home. Showroom pickup and 28-day returns.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/twitter-card.jpg">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/products/favicon.png">
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://yourdomain.com/">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+
+</head>
+<body>
+
+<header>
+  <nav class="navbar">
+    <div class="logo">Pompey Customer</div>
+          <div class="hamburger" onclick="toggleMenu()">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="customer.html">Dashboard</a></li>
+      <li><a href="login.html" onclick="logout()">Logout</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main class="main-with-sidebar">
+  <aside class="sidebar">
+    <button onclick="togglePopup('orders-popup')">View Orders</button>
+    <button onclick="togglePopup('returns-popup')">View Returns</button>
+    <button onclick="togglePopup('loyalty-popup')">View Loyalty</button>
+  </aside>
+  <section class="main-content">
+    <h1>Welcome, Customer</h1>
+    <h2 style="text-align:center;">Available Products</h2>
+    <div id="product-list" class="product-grid"></div>
+  </section>
+</main>
+
+
+<!-- POPUPS -->
+<div id="orders-popup" class="popup" style="display:none;">
+  <div class="popup-content">
+    <span class="popup-close" onclick="togglePopup('orders-popup')">&times;</span>
+    <h2>Your Orders</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Date</th><th>Total</th></tr></thead>
+      <tbody id="orders-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="returns-popup" class="popup" style="display:none;">
+  <div class="popup-content">
+    <span class="popup-close" onclick="togglePopup('returns-popup')">&times;</span>
+    <h2>Your Returns</h2>
+    <table>
+      <thead><tr><th>Order ID</th><th>Reason</th><th>Date</th></tr></thead>
+      <tbody id="returns-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="loyalty-popup" class="popup" style="display:none;">
+  <div class="popup-content">
+    <span class="popup-close" onclick="togglePopup('loyalty-popup')">&times;</span>
+    <h2>Your Loyalty</h2>
+    <p><strong>Points:</strong> <span id="loyalty-points">Loading...</span></p>
+  </div>
+</div>
+
+<footer>
+  <p style="text-align:center;">&copy; 2025 Pompey Furniture Company</p>
+</footer>
+
+<script>
+const customerId = localStorage.getItem("customer_id");
+
+function togglePopup(id) {
+  const popup = document.getElementById(id);
+  popup.style.display = (popup.style.display === "flex") ? "none" : "flex";
+}
+
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "login.html";
+}
+
+async function loadProducts() {
+  const res = await fetch("/api/products");
+  const products = await res.json();
+  const container = document.getElementById("product-list");
+  container.innerHTML = "";
+
+products.forEach(p => {
+  const card = document.createElement("div");
+  card.className = "product-card";
+
+  const escapedDescription = p.description
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, "\\n");
+
+  card.innerHTML = `
+    <img src="images/products/${p.image1}" alt="${p.name}" />
+    <h3>${p.name}</h3>
+    <p class="description">${p.description}</p>
+    <p class="price">£${p.price}</p>
+    <div class="card-buttons">
+      <button class="details-btn" onclick="showProductDetails('${p.name}', '${escapedDescription}', '${p.image1}', ${p.price}, ${p.category_id}, ${p.product_id})">Details</button>
+      <button onclick='addToCart(${p.product_id})'>Add to Cart</button>
+      <button class="buy-btn" onclick='buyNow(${p.product_id})'>Buy Now</button>
+    </div>
+  `;
+  container.appendChild(card);
+});
+}
+
+function showProductDetails(name, description, image, price, categoryId, productId) {
+  const formattedDescription = description.replace(/\\n/g, "<br>");
+
+  const html = `
+    <div class="popup-overlay" onclick="closePopup()">
+      <div class="popup-content" onclick="event.stopPropagation()">
+        <span class="close-btn" onclick="closePopup()">×</span>
+        <h2>${name}</h2>
+        <img src="images/products/${image}" alt="${name}" />
+        <p><strong>Price:</strong> £${price}</p>
+        <p><strong>Description:</strong><br>${formattedDescription}</p>
+        <p><strong>Category ID:</strong> ${categoryId}</p>
+        <button onclick='addToCart(${productId})'>Add to Cart</button>
+        <button onclick='buyNow(${productId})'>Buy Now</button>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", html);
+}
+
+
+
+
+function closePopup() {
+  const popup = document.querySelector(".popup-overlay");
+  if (popup) popup.remove();
+}
+
+function addToCart(id) {
+  alert("Added product " + id + " to cart (demo)");
+}
+
+async function buyNow(productId) {
+  const res = await fetch("/api/products");
+  const products = await res.json();
+  const product = products.find(p => p.product_id === productId);
+
+  if (!product) return alert("Product not found");
+
+  const stripeRes = await fetch("/api/create-checkout-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: product.name, price: product.price })
+  });
+
+  const data = await stripeRes.json();
+  if (data.url) {
+    window.location.href = data.url;
+  } else {
+    alert("Checkout failed.");
+  }
+}
+
+async function loadOrders() {
+  if (!customerId) return;
+  const res = await fetch(`/api/customer/orders/${customerId}`);
+  const data = await res.json();
+  const tbody = document.getElementById("orders-body");
+  tbody.innerHTML = "";
+  if (data.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='3'>No orders found.</td></tr>";
+    return;
+  }
+  data.forEach(o => {
+    tbody.innerHTML += `<tr><td>${o.order_id}</td><td>${new Date(o.order_date).toLocaleDateString()}</td><td>£${o.total}</td></tr>`;
+  });
+}
+
+async function loadReturns() {
+  if (!customerId) return;
+  const res = await fetch(`/api/customer/returns/${customerId}`);
+  const data = await res.json();
+  const tbody = document.getElementById("returns-body");
+  tbody.innerHTML = "";
+  if (data.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='3'>No returns found.</td></tr>";
+    return;
+  }
+  data.forEach(r => {
+    tbody.innerHTML += `<tr><td>${r.order_id}</td><td>${r.reason}</td><td>${new Date(r.return_date).toLocaleDateString()}</td></tr>`;
+  });
+}
+
+async function loadLoyalty() {
+  if (!customerId) return;
+  const res = await fetch(`/api/customer/loyalty/${customerId}`);
+  const data = await res.json();
+  document.getElementById("loyalty-points").textContent = data.points || 0;
+}
+
+window.onload = () => {
+  loadProducts();
+  loadOrders();
+  loadReturns();
+  loadLoyalty();
+};
+</script>
+<script>
+  function toggleMenu() {
+    const nav = document.getElementById('navLinks');
+    nav.classList.toggle('active');
+  }
+</script>
+
+</body>
+</html>

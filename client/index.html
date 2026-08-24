@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pompey Furniture | Elegant Living Starts Here</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
+  <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
+  <meta name="author" content="Pompey Furniture">
+  <meta name="robots" content="index, follow">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yourdomain.com/">
+  <meta property="og:image" content="https://yourdomain.com/images/og-image.jpg">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta name="twitter:description" content="Explore premium, locally crafted furniture for your home. Showroom pickup and 28-day returns.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/twitter-card.jpg">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/products/favicon.png">
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://yourdomain.com/">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+  
+</head>
+
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <div class="logo">Pompey Furniture</div>
+      <div class="hamburger" onclick="toggleMenu()">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      
+      <ul class="nav-links" id="navLinks">
+
+        <li><a href="index.html">Home</a></li>
+        <li><a href="products.html">Shop</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li class="dropdown">
+          <a href="#">More</a>
+          <ul class="dropdown-menu">
+            <li><a href="login.html">Login</a></li>
+            <li><a href="register.html">Register</a></li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+<main>  <!-- Hero Section -->
+  <section class="hero">
+    <video autoplay muted loop id="bg-video">
+      <source src="videos/201947-916877801_medium.mp4" type="video/mp4">
+    </video>
+    <div class="hero-content">
+      <h1>Elegant Living Starts Here</h1>
+      <p>Explore premium furniture crafted for your comfort</p>
+      <br>
+      <a href="products.html" class="btn">Shop Now</a>
+    </div>
+  </section>
+
+  <!-- Featured Products -->
+<section class="featured-products">
+  <h2>Featured Products</h2>
+  <div class="product-grid">
+    <div class="product-card">
+      <img src="images/products/luxury_sofa.jpg" alt="Luxury Sofa" onclick="requireLogin()">
+      <h3>Luxury Sofa</h3>
+      <p>£799.00</p>
+    </div>
+    <div class="product-card">
+      <img src="images/products/classic_dining_set.jpg" alt="Dining Set" onclick="requireLogin()">
+      <h3>Dining Set</h3>
+      <p>£999.00</p>
+    </div>
+    <div class="product-card">
+      <img src="images/products/compact_wardrobe.jpg" alt="Wardrobe" onclick="requireLogin()">
+      <h3>Premium Wardrobe</h3>
+      <p>£599.00</p>
+    </div>
+  </div>
+</section>
+
+
+
+
+  <!-- Why Choose Us -->
+  <section class="why-us">
+    <h2>Why Choose Pompey Furniture?</h2>
+    <ul>
+      <li> Locally Crafted Quality Products</li>
+      <li> Showroom Availability & Pickup</li>
+      <li> Loyalty Points & Discounts</li>
+      <li> 28-Day Return Guarantee</li>
+    </ul>
+  </section>
+
+  <!-- Special Sale -->
+  <section class="sale-banner">
+    <h2>Special Offer</h2>
+    <p>Up to 40% Off on All Sofas – Limited Time!</p>
+    <div id="countdown"></div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="testimonials">
+    <h2>Customer Reviews</h2>
+    <div class="testimonial">
+      <p>"Excellent showroom experience and fast delivery!" – Alice</p>
+    </div>
+    <div class="testimonial">
+      <p>"High quality furniture and friendly service." – James</p>
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="newsletter">
+    <h2>Get Exclusive Offers</h2>
+    <form>
+      <input type="email" placeholder="Enter your email" required />
+      <button type="submit">Subscribe</button>
+    </form>
+  </section>
+</main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="about.html">About</a> |
+      <a href="contact.html">Contact</a> |
+      <a href="login.html">Login</a>
+    </div>
+    <p>&copy; 2025 Pompey Furniture Company</p>
+    <div class="social-icons">
+      <a href="#"><img src="images/facebook.png" alt="Facebook" /></a>
+      <a href="#"><img src="images/instagram.png" alt="Instagram" /></a>
+      <a href="#"><img src="images/twitter.png" alt="Twitter" /></a>
+    </div>
+  </footer>
+
+  <!-- Script: Countdown Timer -->
+  <script>
+    const countdownEl = document.getElementById("countdown");
+    const saleEnd = new Date();
+    saleEnd.setDate(saleEnd.getDate() + 5);
+    
+    function updateCountdown() {
+      const now = new Date();
+      const diff = saleEnd - now;
+      if (diff <= 0) {
+        countdownEl.innerHTML = "Sale Ended!";
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      countdownEl.innerHTML = `${days}d ${hours}h ${minutes}m left`;
+    }
+
+    
+
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+  </script>
+<script>
+  function toggleMenu() {
+    const nav = document.getElementById('navLinks');
+    nav.classList.toggle('active');
+  }
+
+  function requireLogin() {
+  alert("Customer login needed to view the product.");
+  window.location.href = "login.html"; // Replace with your actual login URL
+}
+
+</script>
+
+<!-- Chatbase Chatbot Embed -->
+<script>
+(function(){
+  if (!window.chatbase || window.chatbase("getState") !== "initialized") {
+    window.chatbase = (...arguments) => {
+      if (!window.chatbase.q) { window.chatbase.q = [] }
+      window.chatbase.q.push(arguments)
+    };
+    window.chatbase = new Proxy(window.chatbase, {
+      get(target, prop) {
+        if (prop === "q") { return target.q }
+        return (...args) => target(prop, ...args)
+      }
+    });
+  }
+  const onLoad = function() {
+    const script = document.createElement("script");
+    script.src = "https://www.chatbase.co/embed.min.js";
+    script.id = "LK_ljHsQiP9z2QUPsCXT1";
+    script.domain = "www.chatbase.co";
+    document.body.appendChild(script);
+  };
+  if (document.readyState === "complete") {
+    onLoad();
+  } else {
+    window.addEventListener("load", onLoad);
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Loyalty & Coupons - Pompey Furniture</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
+  <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
+  <meta name="author" content="Pompey Furniture">
+  <meta name="robots" content="index, follow">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://yourdomain.com/">
+  <meta property="og:image" content="https://yourdomain.com/images/og-image.jpg">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pompey Furniture | Elegant Living Starts Here">
+  <meta name="twitter:description" content="Explore premium, locally crafted furniture for your home. Showroom pickup and 28-day returns.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/twitter-card.jpg">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/products/favicon.png">
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://yourdomain.com/">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <div class="logo">Pompey Customer</div>
+            <div class="hamburger" onclick="toggleMenu()">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="products.html">Shop</a></li>
+        <li><a href="orders.html">My Orders</a></li>
+        <li><a href="loyalty.html" class="active">Loyalty</a></li>
+        <li><a href="returns.html">Returns</a></li>
+        <li><a href="login.html">Logout</a></li>
+      </ul>
+    </nav>
+  </header>
+
+<main>
+    <!-- Loyalty Section -->
+    <section class="loyalty-section">
+      <h1>My Loyalty Account</h1>
+      <div class="loyalty-box">
+        <p><strong>Current Points:</strong> <span id="points">Loading...</span></p>
+      </div>
+  
+      <h2>Available Coupons</h2>
+      <div id="coupon-list">
+        <p>Loading coupons...</p>
+      </div>
+    </section>
+</main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="about.html">About</a> |
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 Pompey Furniture Company</p>
+    <div class="social-icons">
+      <a href="#"><img src="images/facebook.png" alt="Facebook" /></a>
+      <a href="#"><img src="images/instagram.png" alt="Instagram" /></a>
+      <a href="#"><img src="images/twitter.png" alt="Twitter" /></a>
+    </div>
+  </footer>
+
+  <!-- Script to Load Loyalty Data -->
+  <script>
+
+        function toggleMenu() {
+    const nav = document.getElementById('nav-links');
+    nav.classList.toggle('active');
+    }
+    async function loadLoyalty() {
+      try {
+        const res = await fetch('/api/customer/loyalty');
+        const data = await res.json();
+
+        document.getElementById('points').textContent = data.points || 0;
+
+        const couponList = document.getElementById('coupon-list');
+        couponList.innerHTML = '';
+
+        if (!data.coupons || data.coupons.length === 0) {
+          couponList.innerHTML = '<p>No coupons available at the moment.</p>';
+          return;
+        }
+
+        data.coupons.forEach(coupon => {
+          const div = document.createElement('div');
+          div.className = 'coupon-box';
+          div.innerHTML = `
+            <p><strong>Description:</strong> ${coupon.description}</p>
+            <p><strong>Discount:</strong> £${coupon.discount_amount}</p>
+            <p><strong>Expires:</strong> ${new Date(coupon.expiry_date).toLocaleDateString()}</p>
+          `;
+          couponList.appendChild(div);
+        });
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('coupon-list').innerHTML = '<p>Failed to load coupons.</p>';
+      }
+    }
+
+    window.onload = loadLoyalty;
+  </script>
+</body>
+</html>
