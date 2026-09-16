@@ -1,11 +1,13 @@
 const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
+const crypto = require('crypto');
+const session = require('express-session');
+const { promisify } = require('util');
 const { Pool } = require('pg');
-const bodyParser = require('body-parser');
 require('dotenv').config();
 const app = express();
-const port = 3000;
+const port = Number(process.env.PORT || 3000);
+const appUrl = process.env.APP_URL || `http://localhost:${port}`;
+const scrypt = promisify(crypto.scrypt);
 
 // PostgreSQL connection pool
 const pool = new Pool({
@@ -17,26 +19,80 @@ const pool = new Pool({
 });
 
 // Middleware
-app.use(cors());
 app.use(express.static('client'));
-app.use(bodyParser.json());
+app.use(express.json({ limit: '100kb' }));
+app.use(session({
+  name: 'pompey.sid',
+  secret: process.env.SESSION_SECRET || 'development-only-change-me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 1000 * 60 * 60 * 8,
+  },
+}));
 
-// ------------------
-// INIT: Create & Seed DB
-// ------------------
-app.get('/init-db', async (req, res) => {
-  try {
-    const createSQL = fs.readFileSync('db/create-tables.sql', 'utf8');
-    const seedSQL = fs.readFileSync('db/seed-data.sql', 'utf8');
-    await pool.query(createSQL);
-    await pool.query(seedSQL);
-    res.send('Database initialized and seeded successfully!');
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('DB init failed');
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = await scrypt(password, salt, 64);
+  return `${salt}:${derivedKey.toString('hex')}`;
+}
+
+async function verifyPassword(password, storedValue) {
+  const [salt, storedHash] = String(storedValue || '').split(':');
+  if (!salt || !storedHash) return false;
+  const derivedKey = await scrypt(password, salt, 64);
+  const expected = Buffer.from(storedHash, 'hex');
+  return expected.length === derivedKey.length
+    && crypto.timingSafeEqual(expected, derivedKey);
+}
+
+function requireAdmin(req, res, next) {
+  if (req.session.user?.role !== 'admin') {
+    return res.status(403).json({ status: 'fail', message: 'Admin access required' });
   }
-});
+  next();
+}
 
+function requireStaffOrAdmin(req, res, next) {
+  if (!['admin', 'staff'].includes(req.session.user?.role)) {
+    return res.status(403).json({ status: 'fail', message: 'Staff access required' });
+  }
+  next();
+}
+
+function requireCustomer(req, res, next) {
+  if (req.session.user?.role !== 'customer') {
+    return res.status(403).json({ status: 'fail', message: 'Customer access required' });
+  }
+  next();
+}
+
+function requireOwnCustomer(req, res, next) {
+  if (
+    req.session.user?.role !== 'customer'
+    || Number(req.params.id) !== Number(req.session.user.customer_id)
+  ) {
+    return res.status(403).json({ status: 'fail', message: 'Access denied' });
+  }
+  next();
+}
+
+function requireOwnEmployeeOrAdmin(req, res, next) {
+  const employeeId = Number(req.params.id ?? req.params.employeeId);
+  if (
+    req.session.user?.role !== 'admin'
+    && !(
+      req.session.user?.role === 'staff'
+      && employeeId === Number(req.session.user.employee_id)
+    )
+  ) {
+    return res.status(403).json({ status: 'fail', message: 'Access denied' });
+  }
+  next();
+}
 
 // ------------------
 // LOGIN
@@ -44,13 +100,21 @@ app.get('/init-db', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(400).json({ status: 'fail', message: 'Email and password are required' });
+  }
+
   try {
     // Check employee (admin or staff)
     const emp = await pool.query(
-      'SELECT * FROM employee WHERE email=$1 AND password=$2',
-      [email, password]
+      'SELECT employee_id, role, password FROM employee WHERE email = $1',
+      [String(email || '').trim().toLowerCase()]
     );
-    if (emp.rows.length) {
+    if (emp.rows.length && await verifyPassword(password, emp.rows[0].password)) {
+      req.session.user = {
+        role: emp.rows[0].role,
+        employee_id: emp.rows[0].employee_id,
+      };
       return res.json({
         status: 'success',
         role: emp.rows[0].role, // 'admin' or 'staff'
@@ -60,10 +124,14 @@ app.post('/api/login', async (req, res) => {
 
     // Check customer
     const cust = await pool.query(
-      'SELECT * FROM customer WHERE email=$1 AND password=$2',
-      [email, password]
+      'SELECT customer_id, password FROM customer WHERE email = $1',
+      [String(email || '').trim().toLowerCase()]
     );
-    if (cust.rows.length) {
+    if (cust.rows.length && await verifyPassword(password, cust.rows[0].password)) {
+      req.session.user = {
+        role: 'customer',
+        customer_id: cust.rows[0].customer_id,
+      };
       return res.json({
         status: 'success',
         role: 'customer',
@@ -108,8 +176,23 @@ app.get('/api/products', async (req, res) => {
 });
 
 
-app.post('/api/products', async (req, res) => {
+app.get('/api/product-categories', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT category_id, name FROM product_category ORDER BY name'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('CATEGORY ERROR:', err);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch categories' });
+  }
+});
+
+app.post('/api/products', requireAdmin, async (req, res) => {
   const { name, description, price, category_id, image1, image2 } = req.body;
+  if (!name?.trim() || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(Number(category_id))) {
+    return res.status(400).json({ status: 'fail', message: 'Valid product details are required' });
+  }
   try {
     await pool.query(
       `INSERT INTO product (name, description, price, category_id, image1, image2)
@@ -126,9 +209,11 @@ app.post('/api/products', async (req, res) => {
 // ------------------
 // CUSTOMERS
 // ------------------
-app.get('/api/customers', async (req, res) => {
+app.get('/api/customers', requireStaffOrAdmin, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM customer');
+    const result = await pool.query(
+      'SELECT customer_id, name, email, phone_number, address FROM customer ORDER BY customer_id'
+    );
     res.json(result.rows);
   } catch (err) {
     res.status(500).send('Error fetching customers');
@@ -146,10 +231,11 @@ app.post('/api/customers', async (req, res) => {
   }
 
   try {
+    const passwordHash = await hashPassword(password);
     await pool.query(
       `INSERT INTO customer (name, email, phone_number, address, password)
        VALUES ($1, $2, $3, $4, $5)`,
-      [name.trim(), email.trim().toLowerCase(), phone_number.trim(), address.trim(), password]
+      [name.trim(), email.trim().toLowerCase(), phone_number.trim(), address.trim(), passwordHash]
     );
     res.status(201).json({ status: 'success' });
   } catch (err) {
@@ -161,7 +247,7 @@ app.post('/api/customers', async (req, res) => {
   }
 });
 
-app.put('/api/customers/:id', async (req, res) => {
+app.put('/api/customers/:id', requireAdmin, async (req, res) => {
   const { name, phone_number, email, address } = req.body;
   try {
     await pool.query(
@@ -179,7 +265,7 @@ app.put('/api/customers/:id', async (req, res) => {
 
 
 
-app.delete('/api/customers/:id', async (req, res) => {
+app.delete('/api/customers/:id', requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM customer WHERE customer_id = $1', [req.params.id]);
     res.json({ status: 'success' });
@@ -191,11 +277,24 @@ app.delete('/api/customers/:id', async (req, res) => {
 // ------------------
 // EMPLOYEES
 // ------------------
-app.get('/api/employees', async (req, res) => {
+app.get('/api/employees', requireStaffOrAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT e.employee_id, e.name, e.role, e.showroom_id, s.name AS showroom_name
-       FROM employee e LEFT JOIN showroom s ON e.showroom_id = s.showroom_id`
+      `SELECT
+         e.employee_id,
+         e.name,
+         e.role,
+         e.showroom_id,
+         s.name AS showroom_name,
+         CASE
+           WHEN ft.employee_id IS NOT NULL THEN 'Full-Time'
+           WHEN pt.employee_id IS NOT NULL THEN 'Part-Time'
+           ELSE 'Not specified'
+         END AS employment_type
+       FROM employee e
+       LEFT JOIN showroom s ON e.showroom_id = s.showroom_id
+       LEFT JOIN full_time_emp ft ON e.employee_id = ft.employee_id
+       LEFT JOIN part_time_emp pt ON e.employee_id = pt.employee_id`
     );
     res.json(result.rows);
   } catch (err) {
@@ -203,7 +302,7 @@ app.get('/api/employees', async (req, res) => {
   }
 });
 
-app.delete('/api/employees/:id', async (req, res) => {
+app.delete('/api/employees/:id', requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM employee WHERE employee_id = $1', [req.params.id]);
     res.json({ status: 'success' });
@@ -213,8 +312,11 @@ app.delete('/api/employees/:id', async (req, res) => {
 });
 
 
-app.put('/api/employees/:id', async (req, res) => {
+app.put('/api/employees/:id', requireAdmin, async (req, res) => {
   const { name, role, showroom } = req.body;
+  if (!name?.trim() || !['admin', 'staff'].includes(role) || !showroom?.trim()) {
+    return res.status(400).json({ status: 'fail', message: 'Valid employee details are required' });
+  }
   try {
     // Fetch showroom_id based on name
     const result = await pool.query(
@@ -242,7 +344,7 @@ app.put('/api/employees/:id', async (req, res) => {
 });
 
 
-app.get('/api/staff/stock-count/:id', async (req, res) => {
+app.get('/api/staff/stock-count/:id', requireOwnEmployeeOrAdmin, async (req, res) => {
   const employeeId = req.params.id;
 
   try {
@@ -269,7 +371,7 @@ app.get('/api/staff/stock-count/:id', async (req, res) => {
 
 
 
-app.get('/api/staff/order-count/:id', async (req, res) => {
+app.get('/api/staff/order-count/:id', requireOwnEmployeeOrAdmin, async (req, res) => {
   const employeeId = req.params.id;
 
   try {
@@ -285,7 +387,8 @@ app.get('/api/staff/order-count/:id', async (req, res) => {
       `SELECT COUNT(*) 
        FROM "order" o
        JOIN delivery_info d ON o.order_id = d.order_id
-       WHERE d.showroom_id = $1`,
+       WHERE d.showroom_id = $1
+         AND o.order_date = CURRENT_DATE`,
       [showroomId]
     );
 
@@ -298,7 +401,7 @@ app.get('/api/staff/order-count/:id', async (req, res) => {
 
 
 
-app.get('/api/staff/return-count/:id', async (req, res) => {
+app.get('/api/staff/return-count/:id', requireOwnEmployeeOrAdmin, async (req, res) => {
   const employeeId = req.params.id;
 
   try {
@@ -326,7 +429,7 @@ app.get('/api/staff/return-count/:id', async (req, res) => {
 });
 
 
-app.get('/api/staff/orders/:employeeId', async (req, res) => {
+app.get('/api/staff/orders/:employeeId', requireOwnEmployeeOrAdmin, async (req, res) => {
   const employeeId = req.params.employeeId;
 
   try {
@@ -367,7 +470,7 @@ app.get('/api/staff/orders/:employeeId', async (req, res) => {
 
 
 
-app.get('/api/staff/orders', async (req, res) => {
+app.get('/api/staff/orders', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
@@ -392,9 +495,13 @@ app.get('/api/staff/orders', async (req, res) => {
 // ------------------
 // UPDATE STOCK ENTRY
 // ------------------
-app.put('/api/stocks/:id', async (req, res) => {
+app.put('/api/stocks/:id', requireAdmin, async (req, res) => {
   const { quantity } = req.body;
   const stockId = req.params.id;
+
+  if (!Number.isInteger(Number(quantity)) || Number(quantity) < 0) {
+    return res.status(400).json({ status: 'fail', message: 'Quantity must be a non-negative integer' });
+  }
 
   try {
     await pool.query(
@@ -409,7 +516,7 @@ app.put('/api/stocks/:id', async (req, res) => {
 });
 
 // GET customer orders
-app.get('/api/customer/orders/:id', async (req, res) => {
+app.get('/api/customer/orders/:id', requireOwnCustomer, async (req, res) => {
   const customerId = req.params.id;
 
   try {
@@ -451,7 +558,7 @@ app.get('/api/customer/orders/:id', async (req, res) => {
 
 
 // GET customer returns
-app.get('/api/customer/returns/:id', async (req, res) => {
+app.get('/api/customer/returns/:id', requireOwnCustomer, async (req, res) => {
   const customerId = req.params.id;
 
   try {
@@ -471,7 +578,7 @@ app.get('/api/customer/returns/:id', async (req, res) => {
 });
 
 
-app.get('/api/customer/loyalty/:id', async (req, res) => {
+app.get('/api/customer/loyalty/:id', requireOwnCustomer, async (req, res) => {
   const customerId = req.params.id;
 
   try {
@@ -501,24 +608,32 @@ app.get('/api/customer/loyalty/:id', async (req, res) => {
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-app.post('/api/create-checkout-session', async (req, res) => {
-  const { name, price } = req.body;
+app.post('/api/create-checkout-session', requireCustomer, async (req, res) => {
+  const { product_id } = req.body;
   try {
+    const productResult = await pool.query(
+      'SELECT product_id, name, price FROM product WHERE product_id = $1',
+      [product_id]
+    );
+    const product = productResult.rows[0];
+    if (!product) {
+      return res.status(404).json({ status: 'fail', message: 'Product not found' });
+    }
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
           currency: 'gbp',
           product_data: {
-            name: name,
+            name: product.name,
           },
-          unit_amount: Math.round(price * 100), // in pence
+          unit_amount: Math.round(Number(product.price) * 100),
         },
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: 'http://localhost:3000/success.html',
-      cancel_url: 'http://localhost:3000/customer.html',
+      success_url: `${appUrl}/success.html`,
+      cancel_url: `${appUrl}/customer.html`,
     });
 
     res.json({ url: session.url });
@@ -529,22 +644,22 @@ app.post('/api/create-checkout-session', async (req, res) => {
 });
 
 
-app.get('/api/customers/count', async (req, res) => {
+app.get('/api/customers/count', requireAdmin, async (req, res) => {
   const result = await pool.query('SELECT COUNT(*) FROM customer');
   res.json({ total: parseInt(result.rows[0].count) });
 });
 
-app.get('/api/products/count', async (req, res) => {
+app.get('/api/products/count', requireAdmin, async (req, res) => {
   const result = await pool.query('SELECT COUNT(*) FROM product');
   res.json({ total: parseInt(result.rows[0].count) });
 });
 
-app.get('/api/orders/count', async (req, res) => {
+app.get('/api/orders/count', requireAdmin, async (req, res) => {
   const result = await pool.query('SELECT COUNT(*) FROM "order"');
   res.json({ total: parseInt(result.rows[0].count) });
 });
 
-app.get('/api/employees/count', async (req, res) => {
+app.get('/api/employees/count', requireAdmin, async (req, res) => {
   const result = await pool.query('SELECT COUNT(*) FROM employee');
   res.json({ total: parseInt(result.rows[0].count) });
 });
@@ -552,7 +667,7 @@ app.get('/api/employees/count', async (req, res) => {
 // ------------------
 // PAYROLL
 // ------------------
-app.get('/api/payroll', async (req, res) => {
+app.get('/api/payroll', requireAdmin, async (req, res) => {
   try {
 const result = await pool.query(`
   SELECT p.*, e.name AS name
@@ -568,7 +683,7 @@ const result = await pool.query(`
 });
 
 
-app.delete('/api/payroll/:id', async (req, res) => {
+app.delete('/api/payroll/:id', requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM payroll_record WHERE payroll_id = $1', [req.params.id]);
     res.json({ status: 'success' });
@@ -581,7 +696,7 @@ app.delete('/api/payroll/:id', async (req, res) => {
 // ------------------
 // SHOWROOMS
 // ------------------
-app.get('/api/showrooms', async (req, res) => {
+app.get('/api/showrooms', requireStaffOrAdmin, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM showroom ORDER BY showroom_id');
     res.json(result.rows);
@@ -590,7 +705,7 @@ app.get('/api/showrooms', async (req, res) => {
   }
 });
 
-app.delete('/api/showrooms/:id', async (req, res) => {
+app.delete('/api/showrooms/:id', requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM showroom WHERE showroom_id = $1', [req.params.id]);
     res.json({ status: 'success' });
@@ -599,7 +714,7 @@ app.delete('/api/showrooms/:id', async (req, res) => {
   }
 });
 
-app.put('/api/showrooms/:id', async (req, res) => {
+app.put('/api/showrooms/:id', requireAdmin, async (req, res) => {
   const { name, address, contact_number } = req.body;
   try {
     await pool.query(
@@ -616,7 +731,7 @@ app.put('/api/showrooms/:id', async (req, res) => {
 // ------------------
 // STOCKS
 // ------------------
-app.get('/api/stocks', async (req, res) => {
+app.get('/api/stocks', requireStaffOrAdmin, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT sa.stock_id, sa.quantity, p.name AS product_name, s.name AS showroom_name
@@ -630,7 +745,7 @@ app.get('/api/stocks', async (req, res) => {
   }
 });
 
-app.delete('/api/stocks/:id', async (req, res) => {
+app.delete('/api/stocks/:id', requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM stock_availability WHERE stock_id = $1', [req.params.id]);
     res.json({ status: 'success' });
@@ -642,8 +757,12 @@ app.delete('/api/stocks/:id', async (req, res) => {
 // ------------------
 // RETURNS (simplified)
 // ------------------
-app.post('/api/customer/return-request', async (req, res) => {
+app.post('/api/customer/return-request', requireCustomer, async (req, res) => {
   const { customer_id, order_id, reason } = req.body;
+
+  if (Number(customer_id) !== Number(req.session.user.customer_id)) {
+    return res.status(403).json({ status: 'fail', message: 'Access denied' });
+  }
 
   if (!customer_id || !order_id || !reason?.trim()) {
     return res.status(400).json({ status: 'fail', message: 'Order and return reason are required' });
@@ -682,7 +801,7 @@ app.post('/api/customer/return-request', async (req, res) => {
 });
 
 
-app.get('/api/customer/return-eligible/:id', async (req, res) => {
+app.get('/api/customer/return-eligible/:id', requireOwnCustomer, async (req, res) => {
   const customerId = req.params.id;
 
   try {
@@ -711,7 +830,7 @@ app.get('/api/customer/return-eligible/:id', async (req, res) => {
   }
 });
 
-app.get('/api/orders', async (req, res) => {
+app.get('/api/orders', requireStaffOrAdmin, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT
@@ -734,6 +853,21 @@ app.get('/api/orders', async (req, res) => {
     console.error('Error fetching orders:', err);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
+});
+
+app.get('/api/session', (req, res) => {
+  res.json({ user: req.session.user || null });
+});
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('pompey.sid');
+    res.json({ status: 'success' });
+  });
+});
+
+app.use((req, res) => {
+  res.status(404).json({ status: 'fail', message: 'Route not found' });
 });
 
 // Start Server

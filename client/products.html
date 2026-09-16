@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Products - Pompey Furniture</title>
   <link rel="stylesheet" href="style.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="auth.js"></script>
   <!-- SEO Meta Tags -->
   <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
   <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
@@ -35,11 +35,11 @@
     <nav class="navbar">
       <div class="logo">Pompey Furniture</div>
     
-      <div class="hamburger" onclick="toggleMenu()">
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
+      <button type="button" class="hamburger" onclick="toggleMenu()" aria-label="Toggle navigation menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     
       <ul class="nav-links" id="navLinks">
         <li><a href="index.html">Home</a></li>
@@ -108,11 +108,11 @@ products.forEach(p => {
   card.className = 'product-card';
   card.innerHTML = `
     <div class="product-image">
-      <img src="images/products/${p.image1}" alt="${p.name}" />
+      <img src="images/products/${escapeHtml(p.image1)}" alt="${escapeHtml(p.name)}" />
     </div>
-    <h3>${p.name}</h3>
+    <h3>${escapeHtml(p.name)}</h3>
     <p>£${p.price}</p>
-    <p><strong>Showroom:</strong> ${p.showroom_name || 'Not assigned'}</p>
+    <p><strong>Showroom:</strong> ${escapeHtml(p.showroom_name || 'Not assigned')}</p>
     <p><strong>Available:</strong> ${p.quantity ?? 0}</p>
     <div class="product-buttons">
   <button onclick="requireLogin()" class="primary">Add to Cart</button>

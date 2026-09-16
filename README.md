@@ -1,96 +1,117 @@
-# Furniture Retail Management System
+# Pompey Furniture Company
 
-A full-stack, database-driven web application developed as part of a university team project at the University of Portsmouth.
+A full-stack retail management prototype for a fictional multi-showroom furniture company. The application connects customer-facing shopping and account journeys with staff operations, administrative tools and a PostgreSQL relational database.
 
-The system supports core operations of a multi-showroom furniture retailer, including product and inventory management, customer accounts, orders, deliveries, returns, loyalty features, employee management and payroll.
-
-> **Academic project:** Developed for educational and demonstration purposes using simulated data.
-
----
+> **Project status:** Functional portfolio prototype using simulated data. It is not intended for unrestricted commercial use.
 
 ## Project Preview
 
-![Furniture Retail Management System homepage with chatbot](docs/images/furniture-homepage.png)
-
----
+![Pompey Furniture Company homepage with customer-support chatbot](docs/images/furniture-homepage.png)
 
 ## Key Features
 
-- **Product & inventory management** - Manages furniture products, categories and stock availability across multiple showroom locations.
-- **Customer accounts** - Supports customer registration, login and account-related functionality.
-- **Order management** - Handles customer orders containing multiple products and associated order details.
-- **Delivery & collection** - Supports home delivery and showroom pickup workflows.
-- **Returns management** - Records product returns and associates them with customer orders.
-- **Loyalty & promotions** - Maintains customer loyalty points and promotional coupons.
-- **Employee & payroll management** - Supports employees, managers, showroom assignments, employment types and payroll records.
-- **Administrative functionality** - Provides interfaces for managing products and operational data.
-- **Customer support chatbot integration** - Integrates a Chatbase-powered chatbot to assist users with product-related enquiries and website navigation.
+### Customer experience
 
----
+- Browse products and view showroom-specific availability.
+- Register and sign in to a customer account.
+- View personal orders, return history, loyalty points and available coupons.
+- Submit return requests for eligible orders within 28 days.
+- Start a Stripe Checkout session using product names and prices retrieved by the server from PostgreSQL.
+- Access a Chatbase-powered customer-support chatbot.
 
-## System Overview
+### Staff operations
 
-The application combines customer-facing retail functionality with administrative and operational workflows.
+- View stock, orders and returns associated with the staff member's assigned showroom.
+- Review the customer and operational information required for day-to-day support.
+- Access staff routes through server-validated session and role checks.
 
-Customers can browse products, create accounts and interact with order, delivery, return and loyalty functionality. On the operational side, the system maintains product inventory across showroom locations and supports employee and payroll information.
+### Administration
 
-The backend connects these workflows to a relational PostgreSQL database through Node.js and Express.js.
+- View dashboard totals for customers, products, orders and employees.
+- Add products and customers.
+- Review and update customer, employee, showroom and stock information.
+- Review payroll data and remove selected management records.
+- Access administrative API routes protected by server-side authorisation.
 
----
+## Architecture
+
+The frontend uses HTML, CSS and browser JavaScript served as static files by Express. The Express server exposes REST-style endpoints and communicates with PostgreSQL through `node-postgres`.
+
+| Layer | Responsibility |
+| --- | --- |
+| Client | Product browsing, account journeys and role-specific interfaces |
+| Express server | Routing, validation, sessions, authorisation and external-service integration |
+| PostgreSQL | Relational data, constraints, operational queries and reporting data |
+| Stripe Checkout | Server-created payment sessions using database-verified product data |
+| Chatbase | Embedded customer-support chatbot |
+
+Authentication is based on server-side sessions. Customer, staff and administrator permissions are checked on the server, and ownership checks prevent customers or staff members from requesting another user's protected records. Browser storage is used only to support interface state; it is not treated as the source of authorisation.
 
 ## Database Design
 
-The application uses a relational PostgreSQL database designed around the operational requirements of a multi-showroom furniture retailer.
-
 ![Enhanced Entity-Relationship Diagram](docs/images/database-eerd.png)
 
-The database models relationships between:
+The relational model covers:
 
-- products and product categories;
-- products and showroom stock availability;
-- customers, orders and order items;
-- customers, loyalty accounts and coupons;
-- orders, deliveries and returns;
-- showrooms, employees and managers;
-- employees, employment types and payroll records.
+- Product categories, products and showroom-specific inventory.
+- Customers, loyalty accounts and coupons.
+- Orders and order items.
+- Home delivery and showroom pickup.
+- Returns.
+- Showrooms, managers and employees.
+- Full-time and part-time employment details.
+- Payroll records.
 
-Key design decisions include:
+Notable design decisions include:
 
-- `StockAvailability` connects products with showroom locations and maintains location-specific inventory quantities.
-- `OrderItem` enables an order to contain multiple products while storing quantity and unit-price information.
-- `DeliveryInfo` supports both home delivery and showroom pickup.
-- `ReturnRecord` associates returns with their corresponding orders.
-- Full-time and part-time employee structures support different employment and salary models.
-
----
+- `stock_availability` resolves the many-to-many relationship between products and showrooms while storing location-specific quantities.
+- `order_item` supports multiple products per order and preserves the unit price charged at the time of purchase.
+- `delivery_info` uses constraints to model either home delivery or showroom pickup.
+- `return_record` links a return to its originating order and limits each order to one return record.
+- Separate full-time and part-time tables represent different employment and payment structures.
 
 ## Business SQL Queries
 
-SQL queries were developed to support operational reporting and business requirements across the relational database.
+Four standalone PostgreSQL reporting queries are provided in [`db/reporting-queries.sql`](db/reporting-queries.sql):
 
-Examples include:
+| Query | Business purpose | Main SQL techniques |
+| --- | --- | --- |
+| Monthly income from showroom pickup orders | Compares monthly income from orders collected at each showroom | `JOIN`, `SUM`, `GROUP BY`, `DATE_TRUNC` |
+| Products within a price range | Finds in-stock products across showrooms within a selected price range | `JOIN`, `BETWEEN`, filtering, ordering |
+| Delivery type summary | Compares home-delivery and showroom-pickup volumes | `COUNT`, `GROUP BY` |
+| Returns in the last 28 days | Identifies recent returns for customer-service follow-up | `JOIN`, `INTERVAL`, filtering, ordering |
 
-- **Monthly revenue by showroom** - Calculates sales revenue for individual showroom locations.
-- **Product availability and price filtering** - Retrieves products available at a selected showroom within a specified price range.
-- **Top-selling products** - Identifies the highest-performing products based on sales volume.
-- **Orders with returns** - Retrieves order and customer information associated with returned purchases.
+The first query intentionally reports pickup-order income only. Pickup records contain a `showroom_id`, while the current schema does not store enough information to attribute home-delivery income to a specific showroom.
 
-These queries use relational joins, filtering, aggregation, grouping and ordering across multiple tables to transform transactional data into useful business information.
+These queries run independently in PostgreSQL and are not exposed through an application reporting dashboard.
 
----
+## Security and Data Handling
 
-## Tech Stack
+The current implementation includes:
+
+- Salted `scrypt` password hashing for seeded and newly registered accounts.
+- Password columns sized to store the complete hashes.
+- HTTP-only session cookies with `SameSite=Lax`.
+- Server-side role and record-ownership checks.
+- Parameterised PostgreSQL queries for application input.
+- Server-side product and price lookup before Stripe Checkout session creation.
+- Environment-based configuration for database credentials, session secrets and Stripe keys.
+- Basic request validation and a restricted JSON request-body size.
+- Customer password fields excluded from list responses.
+
+These controls strengthen the prototype but do not make it production-ready. See [Limitations](#limitations).
+
+## Technology Stack
 
 | Area | Technologies |
 | --- | --- |
 | Frontend | HTML5, CSS3, JavaScript |
 | Backend | Node.js, Express.js |
 | Database | PostgreSQL, SQL |
-| Database Integration | node-postgres (`pg`) |
-| Integration | Chatbase |
-| Development Tools | Git, GitHub, npm |
-
----
+| Database access | `node-postgres` (`pg`) |
+| Authentication | `express-session`, Node.js `crypto` and `scrypt` |
+| Integrations | Stripe Checkout, Chatbase |
+| Development | npm, Git, GitHub, pgAdmin |
 
 ## Project Structure
 
@@ -100,173 +121,188 @@ These queries use relational joins, filtering, aggregation, grouping and orderin
 │   ├── images/
 │   │   └── products/
 │   ├── videos/
+│   │   └── 201947-916877801_medium.mp4
+│   ├── auth.js
 │   ├── index.html
 │   ├── products.html
 │   ├── customer.html
 │   ├── orders.html
-│   ├── loyalty.html
 │   ├── returns.html
+│   ├── loyalty.html
 │   ├── admin.html
+│   ├── staff.html
+│   ├── customers.html
 │   ├── employees.html
 │   ├── payroll.html
 │   ├── showrooms.html
 │   ├── stocks.html
 │   └── style.css
-│
 ├── db/
 │   ├── create-tables.sql
-│   └── seed-data.sql
-│
+│   ├── seed-data.sql
+│   └── reporting-queries.sql
 ├── do-not-edit/
 │   ├── cleanup-db.js
 │   ├── db.js
 │   └── setup-db.js
-│
+├── docs/
+│   └── images/
 ├── .env.example
 ├── .gitignore
-├── db-config.example.js
 ├── package.json
+├── package-lock.json
+├── README.md
 └── server.cjs
 ```
-
----
-
-## My Contribution
-
-This application was developed collaboratively as part of a university team project.
-
-My contributions included:
-
-- Designed the relational database structure and contributed to the implementation of the PostgreSQL database.
-- Developed SQL queries for products, inventory, orders, returns and business reporting.
-- Contributed to customer-facing and administrative functionality across the application.
-- Integrated application functionality with the database to support core retail operations.
-- Tested and debugged key workflows to improve application reliability.
-- Refactored parts of the original application, including form handling, configuration and environment-based credential management.
-
----
 
 ## Getting Started
 
 ### Prerequisites
 
-Make sure the following are installed:
-
-- Node.js
-- npm
+- Node.js and npm
 - PostgreSQL
+- A Stripe **test secret key** beginning with `sk_test_`
+
+Stripe is initialised when the current server starts, so a valid secret key must be present in `.env`. Test mode is recommended for all local and portfolio demonstrations.
 
 ### Installation
 
 1. Clone the repository:
 
-```bash
-git clone https://github.com/quhtrang-cloud/furniture-retail-management-system.git
-```
+   ```bash
+   git clone https://github.com/quhtrang-cloud/furniture-retail-management-system.git
+   cd furniture-retail-management-system
+   ```
 
-2. Navigate to the project directory:
+2. Install the dependencies:
 
-```bash
-cd furniture-retail-management-system
-```
+   ```bash
+   npm install
+   ```
 
-3. Install dependencies:
+3. Copy `.env.example` to a new local file named `.env`, then replace the placeholders:
 
-```bash
-npm install
-```
+   ```env
+   DB_USER=postgres
+   DB_HOST=localhost
+   DB_NAME=mydb
+   DB_PASSWORD=YOUR_POSTGRES_PASSWORD
+   DB_PORT=5432
+   DB_ADMIN_DATABASE=postgres
+   PORT=3000
+   SESSION_SECRET=REPLACE_WITH_A_LONG_RANDOM_SECRET
+   APP_URL=http://localhost:3000
 
-4. Create a `.env` file based on `.env.example` and configure your local database credentials.
+   # Use the secret test key from Stripe Dashboard, not the publishable key.
+   STRIPE_SECRET_KEY=YOUR_STRIPE_TEST_SECRET_KEY
+   ```
 
-5. Set up the PostgreSQL database:
+   Generate a suitable local session secret with:
 
-```bash
-npm run setup
-```
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+   ```
 
-6. Start the application:
+4. Create the local database, tables and simulated data:
 
-```bash
-npm start
-```
+   ```bash
+   npm run setup
+   ```
 
-7. Open the application in your browser:
+5. Start the application:
 
-```text
-http://localhost:3000
-```
+   ```bash
+   npm start
+   ```
 
----
+6. Open [http://localhost:3000](http://localhost:3000).
 
-## Environment Configuration
+> Never commit `.env`, database passwords, session secrets, API keys or real personal data. If a Stripe secret key is exposed, rotate it in Stripe Dashboard and replace the value in the local `.env` file.
 
-Sensitive credentials and local configuration are managed through environment variables and are not committed to the repository.
+## Stripe Test Setup
 
-Refer to `.env.example` for the required configuration.
+1. Open Stripe Dashboard in **test mode**.
+2. Go to **Developers → API keys**.
+3. Copy the **secret key** beginning with `sk_test_`.
+4. Add it to the local `.env` file as `STRIPE_SECRET_KEY`.
+5. Restart the Node.js server after changing the key.
 
-Example:
+Do not use the publishable `pk_test_` key in `server.cjs` or `.env`. The server can technically create live Checkout sessions if supplied with a live secret key, but live mode is not appropriate for this prototype because payment webhooks and post-payment order creation have not been implemented.
 
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=YOUR_PASSWORD
-DB_NAME=mydb
-```
+## Demonstration Accounts
 
-> Never commit the real `.env` file, database passwords, API keys or other credentials to version control.
+Running `npm run setup` creates these local demonstration accounts:
 
----
+| Role | Email | Password |
+| --- | --- | --- |
+| Administrator | `daniel@pompey.com` | `admin` |
+| Staff | `sandra@pompey.com` | `staff` |
+| Customer | `alice@example.com` | `customer1` |
 
-## Database Setup
+The database seed stores salted hashes rather than these plain-text values. The passwords are intentionally simple for local demonstration and must not be reused for a public deployment.
 
-The project includes scripts for creating and resetting the local development database.
+### Existing local databases
 
-Create the database, tables and simulated seed data:
-
-```bash
-npm run setup
-```
-
-To reset the development database:
+Updating `create-tables.sql` or `seed-data.sql` does not modify a database that has already been created. If an older local database still contains short or plain-text passwords, either migrate those records or rebuild the simulated database:
 
 ```bash
 npm run cleanup
 npm run setup
 ```
 
----
+This deletes the database configured by `DB_NAME` before recreating it. Back up anything you need before running the command.
 
-## Limitations & Future Development
+## Available Commands
 
-This application was developed as an academic prototype rather than a production retail platform.
+| Command | Purpose |
+| --- | --- |
+| `npm start` | Starts the Express application |
+| `npm run setup` | Creates the configured development database, schema and seed data |
+| `npm run cleanup` | Deletes the configured development database |
 
-Potential future improvements include:
+## Running the Reporting Queries
 
-- Secure password hashing and production-grade authentication.
-- Stronger role-based authorisation and route protection.
-- More comprehensive server-side validation and error handling.
-- Database transactions for multi-step operations.
-- Automated unit, integration and end-to-end testing.
-- Further responsive design and accessibility improvements.
-- Expanded inventory, delivery and order-status management.
-- Production logging and monitoring.
-- HTTPS/TLS and additional production security controls.
+After setting up the database, open `db/reporting-queries.sql` in pgAdmin and run each statement independently, or use `psql`:
 
----
+```bash
+psql -U postgres -d mydb -f db/reporting-queries.sql
+```
 
-## Project Context
+The values in Query 2 are demonstration inputs and can be changed directly in the SQL file when testing a different price range. Application-facing SQL uses parameters such as `$1` and `$2`; the reporting file contains standalone statements intended for direct execution in PostgreSQL.
 
-This project was developed as part of the **Web Product Development and Management** module at the University of Portsmouth.
+## My Role and Contribution
 
-The project focused on designing and implementing a database-driven web application for a fictional furniture retailer, combining relational database design, SQL, server-side development and web-based business workflows.
+This project was initially developed collaboratively and later independently extended and technically refined. My primary responsibilities focused on project coordination, database design, SQL development and system integration, alongside contributions to information architecture and initial wireframes.
 
-All customer, employee, product and transactional data used by the application is simulated for educational purposes.
+My contribution included:
 
----
+- Leading project planning, task allocation and delivery coordination as Project Manager.
+- Contributing to requirements analysis, comparative research, use cases, role-based information architecture, site architecture and wireframes.
+- Designing the enhanced entity-relationship model and translating it into a PostgreSQL relational schema.
+- Developing and validating business SQL queries using joins, filtering, aggregation, grouping and date-based analysis.
+- Contributing to customer-facing, staff and administrative interfaces and workflows.
+- Integrating browser-based interfaces with Node.js, Express.js and PostgreSQL.
+- Testing and debugging core database-backed journeys across customer, staff and administrator roles.
+- Independently refining authentication, password storage, session-based authorisation, ownership checks, input handling, environment configuration and Stripe Checkout data validation.
+- Improving technical documentation and overall project maintainability.
+
+The final frontend implementation was developed collaboratively. My interface contribution focused primarily on application structure, user flows and wireframes, while my main technical ownership centred on the database and supporting application logic.
+
+## Limitations
+
+This repository demonstrates application structure and database-backed workflows; it is not intended for live commercial use. Current limitations include:
+
+- Sessions use the default in-memory store, which is unsuitable for production deployment.
+- CSRF protection, rate limiting, email verification and account recovery are not implemented.
+- Stripe Checkout creates a payment session, but Stripe webhook verification and persistent order creation after confirmed payment are not implemented.
+- Some management operations require stronger field validation and database transactions.
+- Reporting queries run directly in PostgreSQL rather than through an application dashboard.
+- Automated unit, integration and end-to-end tests have not been added.
+- Production deployment would require HTTPS, a persistent session store, stronger credential policies, secure secret management, structured logging, monitoring and a full security review.
 
 ## Author
 
-**Quynh Trang Nguyen**  
-MSc Information Systems  
-University of Portsmouth
+**Quynh Trang Nguyen**
+
+- [Portfolio](https://my-portfolio-ivory-ten-46.vercel.app/)
+- [LinkedIn](https://www.linkedin.com/in/quynh-trang-nguyen-21a559334/)

@@ -11,22 +11,11 @@
   "license": "ISC",
   "description": "Academic full-stack furniture retail management system built with Node.js, Express and PostgreSQL.",
   "dependencies": {
-    "body-parser": "^1.20.3",
-    "cors": "^2.8.5",
     "dotenv": "^17.4.2",
-    "express": "^4.21.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
     "pg": "^8.14.1",
     "stripe": "^18.1.0"
   },
-  "type": "module",
-  "devDependencies": {
-    "eslint-config-portsoc": "^1.0.1"
-  },
-  "eslintConfig": {
-    "extends": "portsoc",
-    "root": true,
-    "env": {
-      "browser": true
-    }
-  }
+  "type": "module"
 }

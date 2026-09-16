@@ -1,6 +1,5 @@
 node_modules/
 
-db-config.js
 LOGIN DETAILS.txt
 
 CSS-CHECK.mp4
@@ -8,3 +7,4 @@ HTML-CHECK.mp4
 
 .env
 .DS_Store
+*.log

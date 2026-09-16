@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Staff Dashboard - Pompey Furniture</title>
   <link rel="stylesheet" href="style.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="auth.js"></script>
   <!-- SEO Meta Tags -->
   <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
   <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
   <meta name="author" content="Pompey Furniture">
-  <meta name="robots" content="index, follow">
+  <meta name="robots" content="noindex, nofollow">
   <!-- Open Graph / Facebook -->
   <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
   <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
@@ -34,11 +34,11 @@
 <header>
   <nav class="navbar">
     <div class="logo">Pompey Staff</div>
-      <div class="hamburger" onclick="toggleMenu()">
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
+      <button type="button" class="hamburger" onclick="toggleMenu()" aria-label="Toggle navigation menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
 
     <ul class="nav-links" id="navLinks">
       <li><a href="staff.html" class="active">Dashboard</a></li>
@@ -48,7 +48,7 @@
       <li><a href="showrooms.html">Showrooms</a></li>
       <!-- <li><a href="orders.html">Orders</a></li> -->
       <!-- <li><a href="returns.html">Returns</a></li> -->
-      <li><a href="login.html">Logout</a></li>
+      <li><a href="login.html" onclick="event.preventDefault(); logout()">Logout</a></li>
     </ul>
   </nav>
 </header>
@@ -68,7 +68,7 @@
           <p id="order-count">Loading...</p>
         </div>
         <div class="card">
-          <h2>Returns Processed</h2>
+          <h2>Return Requests</h2>
           <p id="return-count">Loading...</p>
         </div>
       </div>
@@ -104,8 +104,6 @@
 
   async function loadStaffStats() {
     const employeeId = localStorage.getItem('employee_id');
-     fetch(`/api/staff/stock-count/${employeeId}`) // ✅ pull from login
-
     if (!employeeId) {
       alert("Employee ID not found. Please log in again.");
       window.location.href = 'login.html';
@@ -135,5 +133,6 @@
 
   window.onload = loadStaffStats;
 </script>
+  <script>requireRole("admin", "staff")</script>
 </body>
 </html>

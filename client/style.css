@@ -382,11 +382,27 @@ footer {
   gap: 5px;
 }
 
-.hamburger div {
+.hamburger span {
   width: 25px;
   height: 3px;
   background-color: white;
   border-radius: 2px;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #1f6feb;
+  outline-offset: 3px;
+}
+
+.hamburger {
+  background: transparent;
+  border: 0;
+  padding: 8px;
+  cursor: pointer;
 }
 @media (max-width: 768px) {
   .nav-links {

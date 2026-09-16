@@ -1,21 +1,19 @@
-import { Client } from './db.js';
-import dbConfig from '../db-config.js';
+import { Client, getDatabaseConfig } from './db.js'
 
 async function cleanupDatabase() {
-  const { database, adminDatabase, ...baseConfig } = dbConfig;
-
-  const adminClient = new Client({ ...baseConfig, database: adminDatabase });
+  const { database, adminDatabase, ...baseConfig } = getDatabaseConfig()
+  const adminClient = new Client({ ...baseConfig, database: adminDatabase })
 
   try {
-    await adminClient.connect();
-    await adminClient.query(`DROP DATABASE IF EXISTS ${database}`);
-    console.log(`Database '${database}' dropped successfully`);
+    await adminClient.connect()
+    await adminClient.query(`DROP DATABASE IF EXISTS "${database}"`)
+    console.log(`Database '${database}' dropped successfully`)
   } catch (err) {
-    console.error('Error cleaning up database:', err);
-    process.exit(1);
+    console.error('Error cleaning up database:', err.message)
+    process.exitCode = 1
   } finally {
-    await adminClient.end();
+    await adminClient.end()
   }
 }
 
-cleanupDatabase();
+cleanupDatabase()

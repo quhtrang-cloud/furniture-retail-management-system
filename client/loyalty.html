@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Loyalty & Coupons - Pompey Furniture</title>
   <link rel="stylesheet" href="style.css">
+  <script src="auth.js"></script>
   <!-- SEO Meta Tags -->
   <meta name="description" content="Explore premium, locally crafted furniture for your home. Pompey Furniture offers luxury sofas, dining sets, wardrobes, and more with showroom pickup and a 28-day return guarantee.">
   <meta name="keywords" content="Pompey Furniture, premium furniture, luxury sofas, dining sets, wardrobes, home decor, showroom, Portsmouth, UK">
   <meta name="author" content="Pompey Furniture">
-  <meta name="robots" content="index, follow">
+  <meta name="robots" content="noindex, nofollow">
   <!-- Open Graph / Facebook -->
   <meta property="og:title" content="Pompey Furniture | Elegant Living Starts Here">
   <meta property="og:description" content="Discover premium, locally crafted furniture for every room. Enjoy showroom pickup, loyalty discounts, and a 28-day return guarantee.">
@@ -29,18 +30,18 @@
   <header>
     <nav class="navbar">
       <div class="logo">Pompey Customer</div>
-            <div class="hamburger" onclick="toggleMenu()">
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
+            <button type="button" class="hamburger" onclick="toggleMenu()" aria-label="Toggle navigation menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
       <ul class="nav-links" id="nav-links">
         <li><a href="index.html">Home</a></li>
         <li><a href="products.html">Shop</a></li>
         <li><a href="orders.html">My Orders</a></li>
         <li><a href="loyalty.html" class="active">Loyalty</a></li>
         <li><a href="returns.html">Returns</a></li>
-        <li><a href="login.html">Logout</a></li>
+        <li><a href="login.html" onclick="event.preventDefault(); logout()">Logout</a></li>
       </ul>
     </nav>
   </header>
@@ -106,7 +107,7 @@
           const div = document.createElement('div');
           div.className = 'coupon-box';
           div.innerHTML = `
-            <p><strong>Description:</strong> ${coupon.description}</p>
+            <p><strong>Description:</strong> ${escapeHtml(coupon.description)}</p>
             <p><strong>Discount:</strong> £${coupon.discount_amount}</p>
             <p><strong>Expires:</strong> ${new Date(coupon.expiry_date).toLocaleDateString()}</p>
           `;
@@ -121,5 +122,6 @@
 
     window.onload = loadLoyalty;
   </script>
+  <script>requireRole("customer")</script>
 </body>
 </html>
