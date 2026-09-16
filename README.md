@@ -6,7 +6,15 @@ A full-stack retail management prototype for a fictional multi-showroom furnitur
 
 ## Project Preview
 
+### Customer-facing homepage
+
 ![Pompey Furniture Company homepage with customer-support chatbot](docs/images/furniture-homepage.png)
+
+### Product catalogue
+
+The database-backed catalogue displays product pricing, showroom-specific availability and stock quantities. Customers can review product details, add items to their cart and begin a test-mode Stripe Checkout session using server-verified product data.
+
+![Furniture product catalogue showing prices, showroom availability, stock quantities and purchasing actions](docs/images/furniture-products.png)
 
 ## Key Features
 
@@ -16,7 +24,7 @@ A full-stack retail management prototype for a fictional multi-showroom furnitur
 - Register and sign in to a customer account.
 - View personal orders, return history, loyalty points and available coupons.
 - Submit return requests for eligible orders within 28 days.
-- Start a Stripe Checkout session using product names and prices retrieved by the server from PostgreSQL.
+- Start a test-mode Stripe Checkout session using product names and prices retrieved by the server from PostgreSQL.
 - Access a Chatbase-powered customer-support chatbot.
 
 ### Staff operations
@@ -147,6 +155,9 @@ These controls strengthen the prototype but do not make it production-ready. See
 │   └── setup-db.js
 ├── docs/
 │   └── images/
+│       ├── database-eerd.png
+│       ├── furniture-homepage.png
+│       └── furniture-products.png
 ├── .env.example
 ├── .gitignore
 ├── package.json
